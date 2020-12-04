@@ -88,12 +88,10 @@ class Revive(commands.Bot):
 
     async def _check_rate_limit(self, message):
         author = message.author
-        if author.id == self.owner_id:
-            return False
 
         bucket = self.rate_limiter.get_bucket(message)
         retry_after = bucket.update_rate_limit()
-        if retry_after:
+        if retry_after and author.id != self.owner_id:
             self.rate_counter[author.id] += 1
             if self.rate_counter[author.id] >= 5:
                 self.blacklist[str(message.author.id)] = time.time()

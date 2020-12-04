@@ -15,6 +15,7 @@ allowed_mentions = discord.AllowedMentions.none()
 intents = discord.Intents.none()
 intents.messages = True
 intents.guild_reactions = True
+intents.guilds = True
 
 bot = Revive(prefix, allowed_mentions=allowed_mentions, intents=intents, owner_id=owner_id)
 
