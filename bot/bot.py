@@ -19,7 +19,7 @@ class Revive(commands.Bot):
         self.logger.info('Bot logged off')
 
     async def on_command_error(self, ctx, error):
-        message = f'An error occurred while processing command:\n\t{ctx.author}: {ctx.message.contents}'
+        message = f'An error occurred while processing command:\n\t{ctx.author}: {ctx.message.content}'
         self.logger.exception(message)
 
     async def on_error(self, event_method, *args, **kwargs):
