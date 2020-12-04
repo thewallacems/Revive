@@ -19,6 +19,8 @@ bot.load_extension('cogs.help')
 try:
     bot.run(token)
 except:
-    bot.logger.exception('Unhandled while running bot')
-
-bot.logger.join()
+    if bot.logger.is_alive():
+        bot.logger.fatal('Unhandled exception while running bot')
+    else:
+        import traceback
+        traceback.print_exc()
