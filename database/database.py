@@ -116,7 +116,7 @@ class Database:
             table = _TABLES[ref]
             values = {'"ID"': id}
             query = table.select(values=values)
-            row = await connection.fetchrow(query)
+            row = await connection.fetchrow(query, *values.values())
             if not row:
                 return None
 

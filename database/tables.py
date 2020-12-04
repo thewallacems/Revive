@@ -13,7 +13,7 @@ def format_values(values, delimiter):
         elif isinstance(value, str):
             value = f"'{value}'"
         ret[key] = value
-    return delimiter.join((f'{key} = {value}' for key, value in ret.items()))
+    return delimiter.join((f'{key} = ${index}' for index, (key, value) in enumerate(ret.items(), 1)))
 
 
 def write_values(values):
