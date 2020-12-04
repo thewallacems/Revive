@@ -35,7 +35,7 @@ Tracking levels so that you can see your progression over time. Not open to publ
 
 Example:
 
-![example usage](https://cdn.discordapp.com/attachments/714229842052251703/778632845396541490/ostre.png)
+![example usage](https://cdn.discordapp.com/attachments/714581563022770218/781692647713669141/wild.png)
 
 
 ## Online Count Tracking
@@ -44,5 +44,5 @@ Tracking online count to see peak hours and online counts over time. Not open to
 
 Example:
 
-![example usage](https://cdn.discordapp.com/attachments/714229842052251703/778687464784265225/online.png)
+![example usage](https://cdn.discordapp.com/attachments/714581563022770218/778995547641217044/online.png)
 
