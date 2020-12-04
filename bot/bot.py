@@ -17,12 +17,20 @@ class Revive(commands.Bot):
         if message.author.bot:
             return
 
+        await self.process_commands(message)
+
+    async def process_commands(self, message):
+        ctx = await self.get_context(message)
+
+        if ctx.command is None:
+            return
+
         bucket = self.rate_limiter.get_bucket(message)
         retry_after = bucket.update_rate_limit()
         if retry_after:
             return await message.channel.send('Slow down!', delete_after=5.0)
 
-        await self.process_commands(message)
+        await self.invoke(ctx)
 
     async def on_command_error(self, ctx, error):
         ignored = (commands.CommandNotFound, )
