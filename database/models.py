@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
 
+EMBED_COLOR = 0x71368a
+
+
 def format_key_name(key):
     if '_' in key:
         key = ' '.join(key.split('_'))
@@ -109,7 +112,8 @@ class Equip:
         return {
             'title': title,
             'description': (self.Description or '') + f'\n\n{description}',
-            'fields': fields
+            'fields': fields,
+            'color': EMBED_COLOR,
         }
 
     def get_image_url(self):
@@ -156,7 +160,8 @@ class Item:
         return {
             'title': title,
             'description': description + (f'\n\n{desc}' if desc else ''),
-            'fields': fields
+            'fields': fields,
+            'color': EMBED_COLOR,
         }
 
     def get_image_url(self):
@@ -191,12 +196,14 @@ class Monster:
     Drops: str
 
     def to_embed_dict(self):
-        fields, description = format_vars(self, )
+        fields, description = format_vars(self)
+        description += f'\n\nHP/XP Ratio: {self.HP/self.XP:.2f}'
         title = f'{self.Name} 💀' if self.Undead else self.Name
         return {
             'title': title,
             'description': description,
-            'fields': fields
+            'fields': fields,
+            'color': EMBED_COLOR,
         }
 
     def get_image_url(self):
