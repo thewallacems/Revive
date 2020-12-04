@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 import asyncpg
@@ -130,4 +131,7 @@ class Database:
         )
 
     async def disconnect(self):
-        await self.pool.close()
+        try:
+            await asyncio.wait_for(self.pool.close(), timeout=2.0)
+        except:
+            await self.pool.terminate()

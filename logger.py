@@ -44,15 +44,11 @@ class Logger(Thread):
         self._running = True
 
     def run(self):
-        while self._running:
+        while self._running or not self.logs.empty():
             self._process_logs()
 
     def join(self, timeout=None):
         self._running = False
-        timeout = 0.5
-        while not self.logs.empty():
-            self._process_logs(timeout=timeout)
-        super().join(timeout)
 
     def info(self, message):
         self._log(logging.INFO, message)
@@ -60,16 +56,19 @@ class Logger(Thread):
     def warning(self, message):
         self._log(logging.WARNING, message)
 
-    def exception(self, message):
-        self._log(logging.ERROR, message, sys.exc_info())
+    def exception(self, message, exc_info=sys.exc_info()):
+        self._log(logging.ERROR, message, exc_info)
 
-    def fatal(self, message):
-        self._log(logging.FATAL, message, sys.exc_info())
+    def fatal(self, message, exc_info=sys.exc_info()):
+        self._log(logging.FATAL, message, exc_info)
 
     def _log(self, level, message, exc_info=None):
         log = Log(level, message, exc_info)
         self.logs.put(log)
 
-    def _process_logs(self, timeout=None):
-        log = self.logs.get(block=self._running, timeout=timeout)
-        _logger.log(log.level, log.message, exc_info=log.exc_info)
+    def _process_logs(self, timeout=2.0):
+        try:
+            log = self.logs.get(block=True, timeout=timeout)
+            _logger.log(log.level, log.message, exc_info=log.exc_info)
+        except:
+            return
