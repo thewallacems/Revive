@@ -56,10 +56,10 @@ class Logger(Thread):
     def warning(self, message):
         self._log(logging.WARNING, message)
 
-    def exception(self, message, exc_info=sys.exc_info()):
+    def exception(self, message, exc_info):
         self._log(logging.ERROR, message, exc_info)
 
-    def fatal(self, message, exc_info=sys.exc_info()):
+    def fatal(self, message, exc_info):
         self._log(logging.FATAL, message, exc_info)
 
     def _log(self, level, message, exc_info=None):
