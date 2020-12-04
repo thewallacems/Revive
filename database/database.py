@@ -125,7 +125,8 @@ class Database:
         self.pool = await asyncpg.create_pool(
             database=config.get('Database', 'Database'),
             user=config.get('Database', 'User'),
-            host=config.get('Database', 'Host')
+            host=config.get('Database', 'Host'),
+            password=config.get('Database', 'Password')
         )
 
     async def disconnect(self):
