@@ -7,7 +7,7 @@ from logger import Logger
 prefix = config.get('Bot', 'Prefix')
 token = config.get('Bot', 'Token')
 
-allowed_mentions = discord.AllowedMentions(everyone=False, roles=False, users=False)
+allowed_mentions = discord.AllowedMentions.none()
 bot = Revive(prefix, allowed_mentions=allowed_mentions)
 
 bot.logger = Logger()
