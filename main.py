@@ -22,9 +22,10 @@ bot = Revive(prefix, allowed_mentions=allowed_mentions, intents=intents, owner_i
 bot.logger = Logger()
 bot.logger.start()
 
-bot.load_extension('cogs.library')
 bot.load_extension('cogs.help')
+bot.load_extension('cogs.library')
 bot.load_extension('cogs.mod')
+bot.load_extension('cogs.stats')
 
 try:
     bot.run(token)
