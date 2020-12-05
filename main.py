@@ -35,4 +35,5 @@ except:
         bot.logger.fatal('Unhandled exception while running bot', exc_info)
     else:
         import traceback
+
         traceback.print_exc()

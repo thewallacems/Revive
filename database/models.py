@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 EMBED_COLOR = 0x71368a
 
 
@@ -197,7 +196,7 @@ class Monster:
 
     def to_embed_dict(self):
         fields, description = format_vars(self)
-        description += f'\n\nHP/XP Ratio: {self.HP/self.XP:.2f}'
+        description += f'\n\nHP/XP Ratio: {self.HP / self.XP:.2f}'
         title = f'{self.Name} 💀' if self.Undead else self.Name
         return {
             'title': title,

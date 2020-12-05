@@ -1,7 +1,6 @@
 import logging
 import logging.handlers
 import os.path
-import sys
 from dataclasses import dataclass
 from queue import Queue
 from threading import Thread

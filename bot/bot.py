@@ -33,6 +33,7 @@ class Revive(commands.Bot):
         super().__init__(command_prefix, **options)
 
         self.db = Database()
+
         self.rate_limiter = commands.CooldownMapping.from_cooldown(1.0, 2.0, commands.BucketType.user)
         self.rate_counter = Counter()
         self.blacklist = _load_blacklist()
@@ -62,19 +63,18 @@ class Revive(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         ignored = (commands.CommandNotFound, commands.CheckFailure, commands.MissingRequiredArgument,
-                   discord.Forbidden, )
+                   discord.Forbidden,)
         error = getattr(error, 'original', error)
         if isinstance(error, ignored):
             return
 
         message = f'An error occurred while processing command:\n\t{ctx.author}: {ctx.message.content}'
-        exc_info = (type(error), error, error.__traceback__, )
+        exc_info = (type(error), error, error.__traceback__,)
         self.logger.exception(message, exc_info)
 
     async def on_error(self, event_method, *args, **kwargs):
         message = f'An error occurred in the bot in {event_method}'
-        exc_info = sys.exc_info()
-        self.logger.exception(message, exc_info)
+        self.logger.exception(message, sys.exc_info())
 
     async def close(self):
         await self.db.disconnect()
@@ -88,17 +88,20 @@ class Revive(commands.Bot):
 
     async def _check_rate_limit(self, message):
         author = message.author
+        if author.id == self.owner_id:
+            return False
 
         bucket = self.rate_limiter.get_bucket(message)
         retry_after = bucket.update_rate_limit()
-        if retry_after and author.id != self.owner_id:
+        if retry_after:
             self.rate_counter[author.id] += 1
             if self.rate_counter[author.id] >= 5:
                 self.blacklist[str(message.author.id)] = time.time()
+                self.logger.info(f'{author} blocked for spam.')
                 try:
-                    self.logger.info(f'{author} blocked for spam.')
                     await author.send('You have been blocked from using this bot temporarily due to spam.')
                 except discord.HTTPException:
-                    pass
+                    await message.channel.send(f'You have been blocked from using this bot temporarily due to spam, '
+                                               f'{author.mention}.')
 
         return retry_after
