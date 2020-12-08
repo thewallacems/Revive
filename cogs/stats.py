@@ -1,9 +1,15 @@
 import asyncio
 import itertools
 from datetime import datetime
+from enum import Enum
 
 import discord
 from discord.ext import commands
+
+
+class Statuses(Enum):
+    UPTIME = 0
+    WEBSITE = 1
 
 
 class Stats(commands.Cog):
@@ -19,18 +25,28 @@ class Stats(commands.Cog):
     async def status_changer(self):
         await self.bot.wait_until_ready()
 
-        statuses = itertools.cycle([0, 1])
+        statuses = itertools.cycle(Statuses)
 
         for status in statuses:
-            if status == 0:
-                activity = discord.Activity(name='https://revivalstory.net/home', type=discord.ActivityType.playing)
-            else:
-                current_time = datetime.utcnow()
-                uptime = str(current_time - self.start_time).split('.')[0]
-                activity = discord.Activity(name=f'Uptime: {uptime}', type=discord.ActivityType.playing)
+            if status == Statuses.UPTIME:
+                # remove the seconds and milliseconds from each time
+                start_time = datetime(self.start_time.year, self.start_time.month, self.start_time.day,
+                                      self.start_time.hour, self.start_time.minute, 0, 0)
 
+                current_time = datetime.utcnow()
+                current_time = datetime(current_time.year, current_time.month, current_time.day,
+                                        current_time.hour, current_time.minute, 0, 0)
+
+                uptime = str(current_time - start_time)
+                name = f'Uptime: {uptime}'
+            elif status == Statuses.WEBSITE:
+                name = 'https://revivalstory.net/home'
+            else:
+                raise NotImplementedError(f'{status} not implemented.')
+
+            activity = discord.Activity(name=name, type=discord.ActivityType.playing)
             await self.bot.change_presence(activity=activity)
-            await asyncio.sleep(10 * 60)
+            await asyncio.sleep(2 * 60)
 
     def cog_unload(self):
         time_online = str(datetime.utcnow() - self.start_time)
