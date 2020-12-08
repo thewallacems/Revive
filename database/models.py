@@ -196,7 +196,13 @@ class Monster:
 
     def to_embed_dict(self):
         fields, description = format_vars(self)
-        description += f'\n\nHP/XP Ratio: {self.HP / self.XP:.2f}'
+
+        if self.XP > 0:
+            hx_ratio = self.HP / self.XP
+        else:
+            hx_ratio = 0.0
+
+        description += f'\n\nHP/XP Ratio: {hx_ratio:.2f}'
         title = f'{self.Name} 💀' if self.Undead else self.Name
         return {
             'title': title,
