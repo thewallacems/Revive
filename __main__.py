@@ -26,6 +26,7 @@ bot.load_extension('cogs.help')
 bot.load_extension('cogs.library')
 bot.load_extension('cogs.mod')
 bot.load_extension('cogs.stats')
+bot.load_extension('cogs.tracker')
 
 try:
     bot.run(token)

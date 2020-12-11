@@ -1,24 +1,20 @@
 import discord
 from discord.ext import commands
 
-from database import models
+from database import models, database
 
 
 class Library(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.Cog.listener('on_ready')
-    async def on_ready(self):
-        await self.bot.db.connect()
-        self.bot.logger.info('Connected to database.')
+        self.db = None
 
     @commands.command(
         help='Looks up by name in the RevivalStory Library',
         description='Looks up by name in the RevivalStory Library',
     )
     async def lookup(self, ctx, *, name: str):
-        item = await self.bot.db.search(name)
+        item = await self.db.search(name)
         if isinstance(item, list):
             return await ctx.send(f'Did you mean... `{"`, `".join(item)}`?')
         elif isinstance(item, (models.Monster, models.Equip, models.Item)):
@@ -34,7 +30,7 @@ class Library(commands.Cog):
                     'Value is an integer.'
     )
     async def search(self, ctx, category: str, *, condition: str):
-        values = await self.bot.db.where(category, condition)
+        values = await self.db.where(category, condition)
         if not values:
             return
 
@@ -42,6 +38,10 @@ class Library(commands.Cog):
             return await ctx.send(f'Returned value(s): `{"`, `".join(values)}`')
         except discord.HTTPException:
             return await ctx.send('Please narrow your search.')
+
+    async def cog_before_invoke(self, ctx):
+        if self.db is None:
+            self.db = database.Database(self.bot.pool)
 
 
 def setup(bot):

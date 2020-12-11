@@ -1,10 +1,6 @@
-import asyncio
 import difflib
 import re
 
-import asyncpg
-
-import config
 from database import tables
 
 #  name: (id, ref)
@@ -90,8 +86,8 @@ async def _lookup(name, connection):
 
 
 class Database:
-    def __init__(self):
-        self.pool = None
+    def __init__(self, pool):
+        self.pool = pool
 
     async def where(self, table: str, condition: str):
         if not table.title() in _TABLES:
@@ -129,23 +125,6 @@ class Database:
 
             row = await connection.fetchrow(query, *values.values())
             return table.companion(*list(row.values())) if row else None
-
-    async def connect(self):
-        self.pool = await asyncpg.create_pool(
-            database=config.get('Database', 'Database'),
-            user=config.get('Database', 'User'),
-            host=config.get('Database', 'Host'),
-            password=config.get('Database', 'Password')
-        )
-
-    async def disconnect(self):
-        if self.pool is None:
-            return
-
-        try:
-            await asyncio.wait_for(self.pool.close(), timeout=2.0)
-        except:
-            await self.pool.terminate()
 
     async def _closest_matches(self, name):
         async with self.pool.acquire() as connection:

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import os.path
@@ -5,10 +6,11 @@ import sys
 import time
 from collections import Counter
 
+import asyncpg
 import discord
 from discord.ext import commands
 
-from database.database import Database
+import config
 
 
 def _save_blacklist(blacklist):
@@ -32,13 +34,20 @@ class Revive(commands.Bot):
     def __init__(self, command_prefix, **options):
         super().__init__(command_prefix, **options)
 
-        self.db = Database()
+        self.pool = None
 
         self.rate_limiter = commands.CooldownMapping.from_cooldown(1.0, 2.0, commands.BucketType.user)
         self.rate_counter = Counter()
         self.blacklist = _load_blacklist()
 
     async def on_ready(self):
+        self.pool = await asyncpg.create_pool(
+            database=config.get('Database', 'Database'),
+            user=config.get('Database', 'User'),
+            host=config.get('Database', 'Host'),
+            password=config.get('Database', 'Password')
+        )
+
         self.logger.info(f'{self.user} logged in')
 
     async def on_message(self, message):
@@ -77,7 +86,14 @@ class Revive(commands.Bot):
         self.logger.exception(message, sys.exc_info())
 
     async def close(self):
-        await self.db.disconnect()
+        if self.pool is None:
+            return
+
+        try:
+            await asyncio.wait_for(self.pool.close(), timeout=2.0)
+        except:
+            await self.pool.terminate()
+
         self.logger.info('Database disconnected')
 
         await super().close()
