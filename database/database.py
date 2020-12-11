@@ -1,4 +1,5 @@
 import asyncio
+import difflib
 import re
 
 import asyncpg
@@ -15,62 +16,71 @@ _TABLES = {
     'Monsters': tables.MonstersTable(),
 }
 
-NAME_TO_NAME = {
-    'accuracy': 'Accuracy',
-    'attack': 'Attack',
-    'attackspeed': 'Attack_Speed',
-    'avoidability': 'Avoid',
-    'cash': 'Cash',
-    'defense': 'Defense',
-    'description': 'Description',
-    'droppedby': 'Dropped_By',
-    'drops': 'Drops',
-    'eva': 'Avoid',
-    'effect': 'Effect',
-    'hp': 'HP',
-    'hpr': 'HP_Recovery',
-    'id': 'ID',
-    'incacc': 'Accuracy',
-    'inceva': 'Avoid',
-    'incint': 'INT',
-    'incjump': 'Jump',
-    'incluk': 'LUK',
-    'incdex': 'DEX',
-    'incmad': 'Magic_Attack',
-    'incmdd': 'Magic_Defense',
-    'incmhp': 'HP',
-    'incmmp': 'MP',
-    'incpad': 'Weapon_Attack',
-    'incpdd': 'Weapon_Defense',
-    'incspeed': 'Speed',
-    'incstr': 'STR',
-    'knockback': 'Knockback',
-    'level': 'Level',
-    'mad': 'Magic_Attack',
-    'magicattack': 'Magic_Attack',
-    'magicdefence': 'Magic_Defense',
-    'mp': 'MP',
-    'mpr': 'MP_Recovery',
-    'name': 'Name',
-    'pad': 'Weapon_Attack',
-    'pdd': 'Weapon_Defense',
-    'price': 'Price',
-    'ref': 'Ref',
-    'reqdex': 'REQ_DEX',
-    'reqint': 'REQ_INT',
-    'reqjob': 'REQ_Job',
+_COLUMNS = {
+    'level': 'level',
     'reqlevel': 'REQ_Level',
-    'reqluk': 'REQ_LUK',
-    'reqpop': 'REQ_Fame',
+    'job': 'REQ_Job',
+    'reqjob': 'REQ_Job',
+    'str': 'STR',
     'reqstr': 'REQ_STR',
+    'dex': 'DEX',
+    'reqdex': 'REQ_DEX',
+    'int': 'INT',
+    'reqint': 'REQ_INT',
+    'luk': 'LUK',
+    'reqluk': 'REQ_LUK',
+    'hp': 'HP',
+    'mp': 'MP',
+    'attackspeed': 'Attack_Speed',
+    'as': 'Attack_Speed',
+    'wa': 'Weapon_Attack',
+    'weaponattack': 'Weapon_Attack',
+    'watt': 'Weapon_Attack',
+    'defense': 'Weapon_Defense',
+    'def': 'Weapon_Defense',
+    'wdef': 'Weapon_Defense',
+    'weapondefense': 'Weapon_Defense',
+    'ma': 'Magic_Attack',
+    'matt': 'Magic_Attack',
+    'magicattack': 'Magic_Attack',
+    'avoid': 'Avoid',
+    'eva': 'Avoid',
+    'avoidability': 'Avoid',
+    'accuracy': 'Accuracy',
+    'acc': 'Accuracy',
     'speed': 'Speed',
+    'spd': 'Speed',
+    'jump': 'Jump',
+    'slots': 'Slots',
+    'npcprice': 'NPC_Price',
+    'npc': 'NPC_Price',
+    'price': 'Price',
+    'hpr': 'HP_Recovery',
+    'mpr': 'MP_Recovery',
+    'hprecovery': 'HP_Recovery',
+    'mprecovery': 'MP_Recovery',
     'success': 'Success',
-    'undead': 'Undead',
-    'xp': 'XP',
-    'tuc': 'Slots',
+    'knockback': 'Knockback',
+    'attack': 'Attack'
 }
 
-SEARCH_REGEX = re.compile('^([A-Za-z]+)\s?([<>=]{1,2})\s?(\d+)$')
+SEARCH_REGEX = re.compile(r'^([A-Za-z]+)\s?([<>=]{1,2})\s?(\d+)$')
+
+
+def _process_condition(condition):
+    match = SEARCH_REGEX.match(condition)
+    if not match:
+        return None
+
+    column = match.group(1).lower()
+    if column not in _COLUMNS:
+        return None
+
+    column = _COLUMNS[column]
+    operator = match.group(2)
+    condition = match.group(3)
+
+    return f'"{column}" {operator} {condition}'
 
 
 async def _lookup(name, connection):
@@ -84,21 +94,20 @@ class Database:
         self.pool = None
 
     async def where(self, table: str, condition: str):
+        if not table.title() in _TABLES:
+            return None
+
+        table = _TABLES[table.title()]
+
         async with self.pool.acquire() as connection:
-            match = SEARCH_REGEX.match(condition)
-            if not table.title() in _TABLES or not match:
-                return None
+            conditions = condition.split(' ')
+            matches = list(filter(lambda x: x is not None, map(_process_condition, conditions)))
+            values = dict((match.split('=')[0].strip(), match.split('=')[1].strip()) for match in matches)
 
-            column = match.group(1)
-            if not column.lower() in NAME_TO_NAME:
-                return
+            query = table.select(values=values)
+            names = map(lambda x: x['Name'], await connection.fetch(query, *map(int, values.values())))
 
-            column = NAME_TO_NAME[column.lower()]
-            operator = match.group(2)
-            condition = match.group(3)
-
-            query = f'SELECT * FROM "{table.title()}" WHERE "{column}" {operator} {condition};'
-            return ', '.join(([f'`{record["Name"]}`' for record in await connection.fetch(query)]))
+            return names
 
     async def search(self, name: str):
         async with self.pool.acquire() as connection:
@@ -107,7 +116,8 @@ class Database:
             else:
                 lookup = await _lookup(name, connection)
                 if lookup is None:
-                    return None
+                    closest_names = await self._closest_matches(name)
+                    return closest_names or None
 
                 id = lookup['ID']
                 ref = lookup['Ref']
@@ -116,11 +126,9 @@ class Database:
             table = _TABLES[ref]
             values = {'"ID"': id}
             query = table.select(values=values)
-            row = await connection.fetchrow(query, *values.values())
-            if not row:
-                return None
 
-            return table.companion(*list(row.values()))
+            row = await connection.fetchrow(query, *values.values())
+            return table.companion(*list(row.values())) if row else None
 
     async def connect(self):
         self.pool = await asyncpg.create_pool(
@@ -131,7 +139,18 @@ class Database:
         )
 
     async def disconnect(self):
+        if self.pool is None:
+            return
+
         try:
             await asyncio.wait_for(self.pool.close(), timeout=2.0)
         except:
             await self.pool.terminate()
+
+    async def _closest_matches(self, name):
+        async with self.pool.acquire() as connection:
+            table = tables.LookupsTable()
+            query = table.select()
+            names = map(lambda x: x['Name'], await connection.fetch(query))
+            closest_names = difflib.get_close_matches(name, names)
+            return closest_names

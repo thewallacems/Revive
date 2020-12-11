@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from database import models
+
 
 class Library(commands.Cog):
     def __init__(self, bot):
@@ -17,12 +19,12 @@ class Library(commands.Cog):
     )
     async def lookup(self, ctx, *, name: str):
         item = await self.bot.db.search(name)
-        if item is None:
-            return
-
-        embed = discord.Embed.from_dict(item.to_embed_dict())
-        embed.set_thumbnail(url=item.get_image_url())
-        return await ctx.send(embed=embed)
+        if isinstance(item, list):
+            return await ctx.send(f'Did you mean... `{"`, `".join(item)}`?')
+        elif isinstance(item, (models.Monster, models.Equip, models.Item)):
+            embed = discord.Embed.from_dict(item.to_embed_dict())
+            embed.set_thumbnail(url=item.get_image_url())
+            return await ctx.send(embed=embed)
 
     @commands.command(
         help='Searches all items in the given category (equips, items, monsters) with the given condition',
@@ -37,7 +39,7 @@ class Library(commands.Cog):
             return
 
         try:
-            return await ctx.send(f'Returned value(s): {values}')
+            return await ctx.send(f'Returned value(s): `{"`, `".join(values)}`')
         except discord.HTTPException:
             return await ctx.send('Please narrow your search.')
 
